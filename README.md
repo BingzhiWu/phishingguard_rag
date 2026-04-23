@@ -25,7 +25,7 @@ Ontology Verifier (Mistral 7B)
 Validated Answer → Streamlit UI
     │
     ▼
-RAGAS Evaluation (4 metrics) → SQLite
+RAGAS Evaluation (3 metrics) → SQLite
 ```
 
 ## Quick Start
@@ -77,7 +77,7 @@ phishingguard_rag/
 | Embedding | BAAI/bge-large-en-v1.5 | Top MTEB retrieval scores, local deployment |
 | Vector DB | FAISS | Fast ANN search, fully local, no cloud dependency |
 | Retrieval | Hybrid (BM25 + Dense) | Combines keyword precision + semantic recall |
-| Evaluation | RAGAS (4 metrics) | Reference-free, component-level assessment |
+| Evaluation | RAGAS (3 metrics) | Reference-free, component-level assessment |
 
 ## RAGAS Metrics
 
@@ -86,7 +86,6 @@ phishingguard_rag/
 | Faithfulness | \|V\|/\|S\| | Fraction of answer claims supported by context |
 | Answer Relevance | (1/n)Σsim(q,qᵢ) | How well the answer addresses the question |
 | Context Relevance | extracted/total | Signal-to-noise ratio of retrieved context |
-| Context Recall | entity overlap | Coverage of relevant domain entities |
 
 ## Running Without Ollama (Demo Mode)
 

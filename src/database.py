@@ -36,7 +36,6 @@ def init_db():
             faithfulness        REAL,
             answer_relevance    REAL,
             context_relevance   REAL,
-            context_recall      REAL,
             overall_score       REAL,
             timestamp           DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -91,21 +90,19 @@ def save_query(question: str, intent: str, answer: str,
 
 
 def save_evaluation(query_id: int, faithfulness: float,
-                    answer_relevance: float, context_relevance: float,
-                    context_recall: float):
+                    answer_relevance: float, context_relevance: float):
     overall = round(
-        (faithfulness + answer_relevance + context_relevance + context_recall)
-        / 4 * 100, 1
+        (faithfulness + answer_relevance + context_relevance) / 3 * 100, 1
     )
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO evaluations
             (query_id, faithfulness, answer_relevance,
-             context_relevance, context_recall, overall_score)
-        VALUES (?, ?, ?, ?, ?, ?)
+             context_relevance, overall_score)
+        VALUES (?, ?, ?, ?, ?)
     """, (query_id, faithfulness, answer_relevance,
-          context_relevance, context_recall, overall))
+          context_relevance, overall))
     conn.commit()
     conn.close()
 
@@ -131,7 +128,7 @@ def get_query_by_id(query_id: int) -> dict | None:
         SELECT q.id, q.question, q.intent, q.answer, q.contexts,
                q.ontology_verified, q.confidence_score, q.ontology_reasoning,
                q.timestamp, e.faithfulness, e.answer_relevance,
-               e.context_relevance, e.context_recall, e.overall_score
+               e.context_relevance, e.overall_score
         FROM queries q
         LEFT JOIN evaluations e ON e.query_id = q.id
         WHERE q.id = ?
@@ -162,8 +159,7 @@ def get_query_by_id(query_id: int) -> dict | None:
             "faithfulness": round((row[9] or 0) * 100),
             "answer_relevance": round((row[10] or 0) * 100),
             "context_relevance": round((row[11] or 0) * 100),
-            "context_recall": round((row[12] or 0) * 100),
-            "overall_score": row[13] or 0,
+            "overall_score": row[12] or 0,
         },
     }
 
@@ -173,7 +169,7 @@ def get_latest_evaluation() -> dict:
     cursor = conn.cursor()
     cursor.execute("""
         SELECT faithfulness, answer_relevance,
-               context_relevance, context_recall, overall_score
+               context_relevance, overall_score
         FROM evaluations
         ORDER BY timestamp DESC
         LIMIT 1
@@ -185,13 +181,11 @@ def get_latest_evaluation() -> dict:
             "faithfulness":       round(row[0] * 100),
             "answer_relevance":   round(row[1] * 100),
             "context_relevance":  round(row[2] * 100),
-            "context_recall":     round(row[3] * 100),
-            "overall_score":      row[4],
+            "overall_score":      row[3],
         }
     return {
         "faithfulness": 0, "answer_relevance": 0,
-        "context_relevance": 0, "context_recall": 0,
-        "overall_score": 0,
+        "context_relevance": 0, "overall_score": 0,
     }
 
 
@@ -201,10 +195,26 @@ def get_kb_stats() -> dict:
     cursor.execute("SELECT COUNT(*) FROM queries")
     total_queries = cursor.fetchone()[0]
     conn.close()
+    try:
+        from src.knowledge_base import get_kb_document_stats
+        kb_stats = get_kb_document_stats()
+    except Exception:
+        kb_stats = {"documents": 0, "chunks": 0, "embeddings": 0}
     return {
-        "documents":   12,
-        "chunks":      247,
-        "embeddings":  247,
+        "documents":   kb_stats.get("documents", 0),
+        "chunks":      kb_stats.get("chunks", 0),
+        "embeddings":  kb_stats.get("embeddings", 0),
+        "status":      kb_stats.get("status", "Unknown"),
+        "last_sync":   kb_stats.get("last_sync", "Not synced"),
+        "embedding_model": kb_stats.get("embedding_model", ""),
+        "chunk_size": kb_stats.get("chunk_size", 0),
+        "chunk_overlap": kb_stats.get("chunk_overlap", 0),
+        "approx_token_chunk_size": kb_stats.get(
+            "approx_token_chunk_size", 0
+        ),
+        "approx_token_chunk_overlap": kb_stats.get(
+            "approx_token_chunk_overlap", 0
+        ),
         "total_queries": total_queries,
     }
 

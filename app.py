@@ -5,6 +5,7 @@ Main entry point: streamlit run app.py
 import sys
 import time
 import json
+import html
 from datetime import datetime
 from pathlib import Path
 
@@ -913,6 +914,166 @@ div[data-testid="stForm"] {
   padding: 24px;
   box-shadow: var(--shadow);
 }
+.kb-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.kb-metric {
+  min-height: 104px;
+  border-radius: 14px;
+  border: 1px solid rgba(120,166,209,0.18);
+  background: rgba(5, 17, 30, 0.62);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.kb-metric-label {
+  color: #9fb2c8;
+  font-size: 0.8rem;
+  font-weight: 650;
+  margin-bottom: 12px;
+}
+.kb-metric-value {
+  color: #f5fbff;
+  font-size: 1.55rem;
+  line-height: 1;
+  font-weight: 850;
+}
+.kb-metric-icon {
+  color: #2fd0c3;
+  font-size: 1.9rem;
+  opacity: 0.92;
+}
+.kb-param-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: -6px 0 20px;
+}
+.kb-param {
+  border-radius: 12px;
+  border: 1px solid rgba(120,166,209,0.14);
+  background: rgba(5, 17, 30, 0.42);
+  padding: 12px 14px;
+}
+.kb-param-label {
+  color: #8195ac;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+.kb-param-value {
+  color: #eaf4ff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.kb-toolbar .stTextInput input,
+.kb-toolbar .stSelectbox [data-baseweb="select"] {
+  min-height: 54px !important;
+  border-radius: 10px !important;
+  background: rgba(31,72,120,0.72) !important;
+  border: 1px solid rgba(120,166,209,0.12) !important;
+  color: #eaf4ff !important;
+}
+.kb-list {
+  display: grid;
+  gap: 14px;
+}
+.kb-doc-card {
+  border: 1px solid rgba(120,166,209,0.18);
+  background: rgba(5, 17, 30, 0.62);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.kb-doc-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.kb-doc-title {
+  color: #eef8ff;
+  font-size: 0.98rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.kb-doc-summary {
+  color: #a9bbcf;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.kb-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  color: #8195ac;
+  margin-top: 12px;
+  font-size: 0.78rem;
+}
+.kb-dot {
+  color: #2fd0c3;
+  font-weight: 900;
+}
+.kb-status {
+  flex: 0 0 auto;
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 750;
+  background: rgba(25,185,129,0.13);
+  border: 1px solid rgba(25,185,129,0.13);
+  color: #18d59c;
+}
+.kb-doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(120,166,209,0.16);
+  margin-top: 16px;
+  padding-top: 10px;
+}
+.kb-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 13px;
+  border-radius: 7px;
+  background: rgba(31,72,120,0.78);
+  border: 1px solid rgba(120,166,209,0.12);
+  color: #eef8ff !important;
+  text-decoration: none !important;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+.kb-action:hover {
+  border-color: rgba(47,208,195,0.34);
+  background: rgba(36,83,136,0.92);
+}
+.kb-empty {
+  border: 1px solid rgba(120,166,209,0.16);
+  border-radius: 12px;
+  color: #9fb2c8;
+  padding: 28px;
+  text-align: center;
+}
+@media (max-width: 980px) {
+  .kb-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kb-param-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kb-toolbar { grid-template-columns: 1fr; }
+}
 .report-score-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1068,6 +1229,61 @@ def format_query_time(ts) -> str:
         except ValueError:
             continue
     return raw
+
+
+def format_relative_time(ts) -> str:
+    raw = str(ts or "").strip()
+    if not raw or raw.lower() in {"none", "not synced"}:
+        return "Not synced"
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if dt.tzinfo is not None:
+            dt = dt.replace(tzinfo=None)
+        delta = datetime.utcnow() - dt
+        seconds = max(0, int(delta.total_seconds()))
+        if seconds < 60:
+            return "Just now"
+        if seconds < 3600:
+            return f"{seconds // 60}m ago"
+        if seconds < 86400:
+            return f"{seconds // 3600}h ago"
+        return f"{seconds // 86400}d ago"
+    except ValueError:
+        return raw[:10]
+
+
+def compact_number(value: int) -> str:
+    if value >= 1000:
+        return f"{value / 1000:.1f}K"
+    return str(value)
+
+
+def load_kb_ui_documents() -> list:
+    from src.knowledge_base import DOC_PATH, get_source_catalog
+    catalog = get_source_catalog()
+    chunk_counts = {}
+    if DOC_PATH.exists():
+        try:
+            import pickle
+            with open(DOC_PATH, "rb") as f:
+                chunks = pickle.load(f)
+            for chunk in chunks:
+                source_id = chunk.metadata.get("source_id")
+                if source_id:
+                    chunk_counts[source_id] = chunk_counts.get(source_id, 0) + 1
+        except Exception:
+            chunk_counts = {}
+
+    docs = []
+    for item in catalog:
+        chunks = chunk_counts.get(item["id"], 0)
+        docs.append({
+            **item,
+            "chunks": chunks,
+            "vectors": chunks,
+            "size": f"{max(1, len(item.get('content', '')) // 1024)} KB",
+        })
+    return docs
 
 
 def query_icon(query: str) -> str:
@@ -1408,6 +1624,8 @@ if active == "Chat":
             chat_html += '</div></div>'
         st.markdown(chat_html, unsafe_allow_html=True)
 
+        progress_slot = st.empty()
+
         # Input
         prefill = st.session_state.pop("prefill", "")
         if prefill and not st.session_state.pending_query:
@@ -1446,13 +1664,25 @@ if active == "Chat":
             query = st.session_state.pending_query
 
             try:
-                with st.spinner("🔍 Analysing query…"):
-                    result = run_pipeline(query)
-
-                with st.spinner("📊 Evaluating with RAGAS…"):
-                    scores = evaluate_response(
-                        query, result["answer"], result["contexts"]
+                with progress_slot.container():
+                    progress = st.progress(
+                        10, text="Analysing query... 10%"
                     )
+
+                result = run_pipeline(query)
+                progress.progress(
+                    65, text="Pipeline complete. Starting RAGAS... 65%"
+                )
+
+                progress.progress(
+                    75, text="Evaluating with RAGAS... 75%"
+                )
+                scores = evaluate_response(
+                    query, result["answer"], result["contexts"]
+                )
+                progress.progress(
+                    95, text="Saving RAGAS scores... 95%"
+                )
 
                 # Persist to DB
                 qid = save_query(
@@ -1467,10 +1697,10 @@ if active == "Chat":
                     "faithfulness":      round(scores["faithfulness"] * 100),
                     "answer_relevance":  round(scores["answer_relevance"] * 100),
                     "context_relevance": round(scores["context_relevance"] * 100),
-                    "context_recall":    round(scores["context_recall"] * 100),
                     "overall_score":     round(
-                        sum(scores.values()) / 4 * 100, 1),
+                        sum(scores.values()) / 3 * 100, 1),
                 }
+                progress.progress(100, text="Evaluation complete. 100%")
 
                 assistant_msg = {
                     "role":      "assistant",
@@ -1529,8 +1759,6 @@ if active == "Chat":
              "Addresses the question"),
             ("context_relevance", "Context Relevance",
              "Retrieved context quality"),
-            ("context_recall",    "Context Recall",
-             "Coverage of relevant info"),
         ]
         for key, label, desc in metrics:
             val = ev.get(key, 0)
@@ -1539,42 +1767,151 @@ if active == "Chat":
 # ── KNOWLEDGE BASE PAGE ───────────────────────────────────────────────────────
 elif active == "Knowledge Base":
     kb = get_kb_stats()
-    kb_stats_html = "".join([
-        stat_card("Documents", kb["documents"]),
-        stat_card("Chunks", kb["chunks"]),
-        stat_card("Embeddings", kb["embeddings"]),
-        stat_card("Queries", kb["total_queries"]),
-    ])
+    kb_docs = load_kb_ui_documents()
+    categories = ["All"] + sorted({doc["category"] for doc in kb_docs})
+
     st.markdown(f"""
-    <div class="panel-card">
-      <div class="panel-heading">
+    <div class="kb-metrics">
+      <div class="kb-metric">
         <div>
-          <div class="panel-title">📚 Knowledge Base Stats</div>
-          <div class="panel-subtitle">Current indexed corpus snapshot</div>
+          <div class="kb-metric-label">Total Documents</div>
+          <div class="kb-metric-value">{kb["documents"]}</div>
         </div>
+        <div class="kb-metric-icon">▤</div>
       </div>
-      <div class="stat-grid">
-        {kb_stats_html}
+      <div class="kb-metric">
+        <div>
+          <div class="kb-metric-label">Vector Embeddings</div>
+          <div class="kb-metric-value">{compact_number(kb["embeddings"])}</div>
+        </div>
+        <div class="kb-metric-icon">◎</div>
+      </div>
+      <div class="kb-metric">
+        <div>
+          <div class="kb-metric-label">Index Status</div>
+          <div class="kb-metric-value">{html.escape(kb.get("status", "Unknown"))}</div>
+        </div>
+        <div class="kb-metric-icon">✓</div>
+      </div>
+      <div class="kb-metric">
+        <div>
+          <div class="kb-metric-label">Last Sync</div>
+          <div class="kb-metric-value">{format_relative_time(kb.get("last_sync"))}</div>
+        </div>
+        <div class="kb-metric-icon">↻</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown(
-        "Documents are crawled from NIST and APWG, chunked into 512-token "
-        "segments with 64-token overlap, and indexed in FAISS using "
-        "**BAAI/bge-large-en-v1.5** embeddings."
-    )
 
-    from src.knowledge_base import PHISHING_KNOWLEDGE
-    for doc in PHISHING_KNOWLEDGE:
-        with st.expander(f"📄 {doc['title']} — *{doc['source']}*"):
-            st.markdown(doc["content"])
+    st.markdown(f"""
+    <div class="kb-param-strip">
+      <div class="kb-param">
+        <div class="kb-param-label">Chunk Count</div>
+        <div class="kb-param-value">{kb["chunks"]}</div>
+      </div>
+      <div class="kb-param">
+        <div class="kb-param-label">Chunk Size</div>
+        <div class="kb-param-value">{kb.get("approx_token_chunk_size", 0)} tokens ≈ {kb.get("chunk_size", 0)} chars</div>
+      </div>
+      <div class="kb-param">
+        <div class="kb-param-label">Chunk Overlap</div>
+        <div class="kb-param-value">{kb.get("approx_token_chunk_overlap", 0)} tokens ≈ {kb.get("chunk_overlap", 0)} chars</div>
+      </div>
+      <div class="kb-param">
+        <div class="kb-param-label">Embedding Model</div>
+        <div class="kb-param-value">{html.escape(kb.get("embedding_model", ""))}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.divider()
-    if st.button("🔄 Rebuild Knowledge Base"):
+    search_col, filter_col = st.columns([5, 1])
+    with search_col:
+        kb_search = st.text_input(
+            "Search knowledge base",
+            key="kb_search",
+            placeholder="Search documents by title, content, or category...",
+            label_visibility="collapsed",
+        ).strip().lower()
+    with filter_col:
+        kb_filter = st.selectbox(
+            "Filters",
+            categories,
+            key="kb_filter",
+            label_visibility="collapsed",
+        )
+
+    if st.button("↻ Re-index authoritative sources"):
         from src.knowledge_base import build_knowledge_base
         with st.spinner("Rebuilding…"):
             build_knowledge_base(force_rebuild=True)
         st.success("Knowledge base rebuilt successfully!")
+        st.rerun()
+
+    filtered_docs = []
+    for doc in kb_docs:
+        haystack = " ".join([
+            doc.get("title", ""),
+            doc.get("summary", ""),
+            doc.get("category", ""),
+            doc.get("authority", ""),
+            doc.get("source", ""),
+        ]).lower()
+        if kb_filter != "All" and doc["category"] != kb_filter:
+            continue
+        if kb_search and kb_search not in haystack:
+            continue
+        filtered_docs.append(doc)
+
+    cards = ['<div class="kb-list">']
+    for doc in filtered_docs:
+        title = html.escape(doc["title"])
+        summary = html.escape(doc["summary"])
+        category = html.escape(doc["category"])
+        status = html.escape(doc["status"])
+        source = html.escape(doc["source"])
+        authority = html.escape(doc["authority"])
+        updated = html.escape(doc["updated"])
+        size = html.escape(doc["size"])
+        chunks = doc["chunks"]
+        vectors = doc["vectors"]
+        url = html.escape(doc["url"], quote=True)
+        if doc["url"].startswith("local://"):
+            action_links = '<span class="kb-action">Local Playbook</span>'
+        else:
+            action_links = (
+                f'<a class="kb-action" href="{url}" target="_blank">View</a>'
+                f'<a class="kb-action" href="{url}" target="_blank">Source</a>'
+            )
+        cards.append(
+            '<div class="kb-doc-card">'
+            '<div class="kb-doc-head">'
+            '<div>'
+            f'<div class="kb-doc-title">▤&nbsp; {title}</div>'
+            f'<div class="kb-doc-summary">{summary}</div>'
+            '<div class="kb-doc-meta">'
+            f'<span><span class="kb-dot">•</span> {category}</span>'
+            f'<span>{source}</span>'
+            f'<span>{authority}</span>'
+            f'<span>{size}</span>'
+            f'<span>{chunks} chunks</span>'
+            f'<span>{vectors} vectors</span>'
+            f'<span>Updated {updated}</span>'
+            '</div>'
+            '</div>'
+            f'<div class="kb-status">✓ {status}</div>'
+            '</div>'
+            f'<div class="kb-doc-actions">{action_links}</div>'
+            '</div>'
+        )
+    cards.append('</div>')
+
+    if filtered_docs:
+        st.markdown("".join(cards), unsafe_allow_html=True)
+    else:
+        st.markdown(
+            '<div class="kb-empty">No documents match this search.</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── REPORTS PAGE ──────────────────────────────────────────────────────────────
@@ -1595,7 +1932,7 @@ elif active == "Reports":
         df_eval = pd.read_sql_query("""
             SELECT q.question,
                    e.faithfulness, e.answer_relevance,
-                   e.context_relevance, e.context_recall,
+                   e.context_relevance,
                    e.overall_score, e.timestamp
             FROM evaluations e
             JOIN queries q ON q.id = e.query_id
@@ -1611,12 +1948,12 @@ elif active == "Reports":
     else:
         st.markdown("### Recent RAGAS Scores")
         avg = df_eval[["faithfulness", "answer_relevance",
-                        "context_relevance", "context_recall"]].mean()
+                        "context_relevance"]].mean()
 
         labels = ["Faithfulness", "Ans. Relevance",
-                  "Ctx. Relevance", "Ctx. Recall"]
+                  "Ctx. Relevance"]
         keys   = ["faithfulness", "answer_relevance",
-                  "context_relevance", "context_recall"]
+                  "context_relevance"]
         score_cards = ['<div class="report-score-grid">']
         for lbl, key in zip(labels, keys):
             val = round(avg[key] * 100, 1)
@@ -1637,9 +1974,8 @@ elif active == "Reports":
         fig = px.line(
             df_plot, x="timestamp",
             y=["faithfulness", "answer_relevance",
-               "context_relevance", "context_recall"],
-            color_discrete_sequence=["#1e90ff", "#2ecc71",
-                                      "#f39c12", "#e74c3c"],
+               "context_relevance"],
+            color_discrete_sequence=["#1e90ff", "#2ecc71", "#f39c12"],
             template="plotly_dark",
         )
         fig.update_layout(
@@ -1673,8 +2009,7 @@ elif active == "Reports":
         st.markdown("### Query History")
         st.dataframe(
             df_eval[["question", "faithfulness", "answer_relevance",
-                     "context_relevance", "context_recall",
-                     "overall_score", "timestamp"]],
+                     "context_relevance", "overall_score", "timestamp"]],
             use_container_width=True,
         )
 

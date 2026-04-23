@@ -1,125 +1,154 @@
 """
-evaluator.py - RAGAS-based evaluation for PhishingGuard-RAG.
+evaluator.py - Real RAGAS evaluation for PhishingGuard-RAG.
 
-Computes four metrics from Es et al. (2024):
-  • Faithfulness      F  = |V| / |S|
-  • Answer Relevance  AR = (1/n) Σ sim(q, qᵢ)
-  • Context Relevance CR = extracted_sentences / total_sentences
-  • Context Recall    (ground-truth entity overlap with retrieved context)
+Computes three RAGAS metrics:
+  - Faithfulness
+  - Answer Relevance
+  - Context Relevance
 """
 import os
-import time
-import random
-from typing import List
+from typing import Any, List
 
 
-def _score_faithfulness(answer: str, contexts: List[str]) -> float:
+RAGAS_METRIC_KEYS = {
+    "faithfulness": "faithfulness",
+    "answer_relevance": "answer_relevancy",
+    "context_relevance": "context_relevancy",
+}
+
+
+def _load_ragas():
+    """Import RAGAS lazily so the app can start before deps are installed."""
+    try:
+        from datasets import Dataset
+        from ragas import evaluate
+        from ragas.metrics import (
+            answer_relevancy,
+            context_relevancy,
+            faithfulness,
+        )
+    except ImportError as exc:
+        raise RuntimeError(
+            "Real RAGAS evaluation requires the project dependencies to be "
+            "installed. Run `pip install -r requirements.txt` in this "
+            "environment before evaluating."
+        ) from exc
+
+    return Dataset, evaluate, faithfulness, answer_relevancy, context_relevancy
+
+
+def _ragas_runtime_kwargs() -> dict:
     """
-    Estimate faithfulness by checking keyword overlap between the answer
-    and the retrieved contexts.  In a full deployment this would use the
-    RAGAS library with an LLM judge.
+    Optional local-Ollama judge configuration.
+
+    By default RAGAS uses its configured default LLM/embeddings, normally
+    OpenAI via OPENAI_API_KEY. Set RAGAS_PROVIDER=ollama to run the evaluator
+    through the local Ollama endpoint with local HuggingFace embeddings.
     """
-    if not answer or not contexts:
-        return 0.5
+    provider = os.getenv("RAGAS_PROVIDER", "openai").strip().lower()
+    if provider != "ollama":
+        return {}
 
-    answer_words = set(answer.lower().split())
-    context_words = set(" ".join(contexts).lower().split())
+    try:
+        from langchain_community.chat_models import ChatOllama
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        from ragas.embeddings import LangchainEmbeddingsWrapper
+        from ragas.llms import LangchainLLMWrapper
 
-    # Cybersecurity-domain stop-words that carry real weight
-    domain_terms = {
-        "phishing", "spear-phishing", "dmarc", "dkim", "spf", "mfa",
-        "incident", "response", "email", "authentication", "gateway",
-        "credentials", "malicious", "domain", "nist", "detection",
-        "mitigation", "endpoint", "sandbox", "url", "attachment",
+        from src.knowledge_base import EMBEDDING_MODEL
+    except ImportError as exc:
+        raise RuntimeError(
+            "RAGAS_PROVIDER=ollama requires langchain-community, "
+            "sentence-transformers, and RAGAS LangChain wrappers installed."
+        ) from exc
+
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    llm_model = os.getenv("RAGAS_LLM_MODEL", os.getenv("LLM_MODEL", "mistral"))
+    embedding_model = os.getenv("RAGAS_EMBEDDING_MODEL", EMBEDDING_MODEL)
+    if embedding_model == "nomic-embed-text":
+        # Backwards compatibility for older local-Ollama embedding settings.
+        # This evaluator now uses HuggingFace embeddings, not Ollama embeddings.
+        embedding_model = EMBEDDING_MODEL
+
+    llm = ChatOllama(model=llm_model, base_url=base_url, temperature=0)
+    embeddings = HuggingFaceEmbeddings(
+        model_name=embedding_model,
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
+
+    return {
+        "llm": LangchainLLMWrapper(llm),
+        "embeddings": LangchainEmbeddingsWrapper(embeddings),
     }
 
-    domain_in_answer  = answer_words & domain_terms
-    domain_in_context = context_words & domain_terms
-    overlap = domain_in_answer & domain_in_context
 
-    if not domain_in_answer:
-        return 0.7
-    base = len(overlap) / len(domain_in_answer)
-    # Add small noise to reflect real evaluator variance
-    return min(1.0, max(0.4, base + random.uniform(-0.05, 0.05)))
+def _extract_metric(result: Any, metric_key: str) -> float:
+    """Read a single metric from RAGAS result objects across 0.1.x shapes."""
+    value = None
+
+    if isinstance(result, dict):
+        value = result.get(metric_key)
+
+    if value is None and hasattr(result, "__getitem__"):
+        try:
+            value = result[metric_key]
+        except Exception:
+            value = None
+
+    if value is None and hasattr(result, "to_pandas"):
+        frame = result.to_pandas()
+        if metric_key in frame.columns and not frame.empty:
+            value = frame[metric_key].iloc[0]
+
+    if hasattr(value, "iloc"):
+        value = value.iloc[0]
+    elif isinstance(value, list):
+        value = value[0] if value else 0.0
+
+    try:
+        return round(float(value), 3)
+    except (TypeError, ValueError):
+        return 0.0
 
 
-def _score_answer_relevance(question: str, answer: str) -> float:
-    """
-    Estimate answer relevance via keyword overlap between the question
-    and the answer.
-    """
-    q_words = set(question.lower().split())
-    a_words = set(answer.lower().split())
-    stop    = {"the", "a", "an", "is", "are", "was", "were", "in",
-               "to", "of", "and", "or", "for", "with", "how", "what",
-               "should", "we", "can", "be", "do", "i"}
-    q_key = q_words - stop
-    a_key = a_words - stop
+def _format_ragas_error(exc: Exception) -> str:
+    message = str(exc)
+    provider = os.getenv("RAGAS_PROVIDER", "openai").strip().lower()
+    llm_model = os.getenv("RAGAS_LLM_MODEL", os.getenv("LLM_MODEL", "mistral"))
+    embedding_model = os.getenv("RAGAS_EMBEDDING_MODEL", "")
 
-    if not q_key:
-        return 0.75
-    overlap = q_key & a_key
-    base    = len(overlap) / len(q_key)
-    return min(1.0, max(0.4, base + random.uniform(-0.05, 0.08)))
-
-
-def _score_context_relevance(question: str, contexts: List[str]) -> float:
-    """
-    Estimate context relevance: proportion of context sentences that
-    contain at least one question keyword.
-    """
-    if not contexts:
-        return 0.5
-
-    q_words = set(question.lower().split())
-    stop    = {"the", "a", "an", "is", "are", "to", "of", "and",
-               "or", "for", "with", "how", "what", "should", "we"}
-    q_key   = q_words - stop
-
-    all_sentences = []
-    for ctx in contexts:
-        all_sentences.extend(
-            [s.strip() for s in ctx.replace("\n", ". ").split(". ")
-             if len(s.strip()) > 10]
+    if "nomic-embed-text" in message:
+        return (
+            "RAGAS evaluation failed because the evaluator is still trying "
+            "to use `nomic-embed-text` as a HuggingFace embedding model. "
+            "Unset RAGAS_EMBEDDING_MODEL or restart Streamlit so the updated "
+            "local HuggingFace embedding configuration is loaded."
         )
 
-    if not all_sentences:
-        return 0.7
+    if provider == "ollama" and "404" in message and llm_model in message:
+        return (
+            "RAGAS evaluation failed because Ollama could not load the "
+            f"judge model `{llm_model}`. Run `ollama pull {llm_model}` "
+            "or set RAGAS_LLM_MODEL to an installed Ollama chat model."
+        )
 
-    relevant = sum(
-        1 for s in all_sentences
-        if any(w in s.lower() for w in q_key)
-    )
-    base = relevant / len(all_sentences)
-    return min(1.0, max(0.3, base + random.uniform(-0.05, 0.05)))
+    if provider == "ollama" and embedding_model and embedding_model in message:
+        return (
+            "RAGAS evaluation failed while loading the embedding model "
+            f"`{embedding_model}`. Unset RAGAS_EMBEDDING_MODEL to use the "
+            "project default `BAAI/bge-large-en-v1.5`, or set it to a valid "
+            "HuggingFace/SentenceTransformer model."
+        )
 
+    if provider != "ollama" and "api_key" in message.lower():
+        return (
+            "RAGAS evaluation failed because no OpenAI API key is configured. "
+            "Set OPENAI_API_KEY, or set RAGAS_PROVIDER=ollama to evaluate "
+            "with the local Ollama judge."
+        )
 
-def _score_context_recall(answer: str, contexts: List[str]) -> float:
-    """
-    Estimate context recall: proportion of domain entities in the answer
-    that also appear in the retrieved context.
-    """
-    if not answer or not contexts:
-        return 0.5
-
-    domain_entities = {
-        "dmarc", "dkim", "spf", "mfa", "fido2", "nist", "soc",
-        "phishing", "spear-phishing", "bec", "iot", "endpoint",
-        "incident", "credentials", "gateway", "sandbox",
-        "containment", "forensic",
-    }
-
-    a_lower = answer.lower()
-    c_lower = " ".join(contexts).lower()
-
-    in_answer  = {e for e in domain_entities if e in a_lower}
-    in_context = {e for e in in_answer if e in c_lower}
-
-    if not in_answer:
-        return 0.75
-    base = len(in_context) / len(in_answer)
-    return min(1.0, max(0.4, base + random.uniform(-0.05, 0.05)))
+    return f"RAGAS evaluation failed: {message}"
 
 
 def evaluate_response(
@@ -128,25 +157,32 @@ def evaluate_response(
     contexts: List[str],
 ) -> dict:
     """
-    Compute the four RAGAS metrics and return a result dictionary.
+    Compute real RAGAS metrics for a single RAG response.
 
-    In production, replace the heuristic scorers above with:
-        from ragas import evaluate
-        from ragas.metrics import (faithfulness, answer_relevancy,
-                                   context_relevance, context_recall)
+    Returns scores on a 0-1 scale using the existing app-facing keys:
+      faithfulness, answer_relevance, context_relevance
     """
-    time.sleep(0.1)  # Simulate evaluation latency
+    Dataset, evaluate, faithfulness, answer_relevancy, context_relevancy = (
+        _load_ragas()
+    )
 
-    faithfulness      = round(_score_faithfulness(answer, contexts), 3)
-    answer_relevance  = round(_score_answer_relevance(question, answer), 3)
-    context_relevance = round(_score_context_relevance(question, contexts), 3)
-    context_recall    = round(_score_context_recall(answer, contexts), 3)
+    dataset = Dataset.from_dict({
+        "question": [question],
+        "answer": [answer],
+        "contexts": [contexts],
+    })
+    try:
+        result = evaluate(
+            dataset,
+            metrics=[faithfulness, answer_relevancy, context_relevancy],
+            **_ragas_runtime_kwargs(),
+        )
+    except Exception as exc:
+        raise RuntimeError(_format_ragas_error(exc)) from exc
 
     return {
-        "faithfulness":       faithfulness,
-        "answer_relevance":   answer_relevance,
-        "context_relevance":  context_relevance,
-        "context_recall":     context_recall,
+        output_key: _extract_metric(result, ragas_key)
+        for output_key, ragas_key in RAGAS_METRIC_KEYS.items()
     }
 
 
@@ -154,38 +190,18 @@ def evaluate_response(
 TEST_QUERIES = [
     {
         "question": "How should we handle spear-phishing in an enterprise?",
-        "ground_truth": (
-            "Deploy DMARC, DKIM, SPF; run phishing simulations; "
-            "follow NIST SP 800-61 incident response."
-        ),
     },
     {
         "question": "What are the indicators of a phishing email?",
-        "ground_truth": (
-            "Suspicious sender domain, urgent language, mismatched URLs, "
-            "unexpected attachments, requests for credentials."
-        ),
     },
     {
         "question": "How does DMARC prevent email spoofing?",
-        "ground_truth": (
-            "DMARC builds on SPF and DKIM to let domain owners publish "
-            "policies on how receivers should handle authentication failures."
-        ),
     },
     {
         "question": "What steps should be taken after a phishing compromise?",
-        "ground_truth": (
-            "Isolate endpoint, reset credentials, preserve email headers "
-            "for forensics, notify SOC within one hour."
-        ),
     },
     {
         "question": "What is Business Email Compromise?",
-        "ground_truth": (
-            "BEC is a phishing attack where criminals impersonate executives "
-            "or partners to authorise fraudulent wire transfers."
-        ),
     },
 ]
 
@@ -201,8 +217,8 @@ def run_batch_evaluation(pipeline_fn) -> list:
             result["contexts"],
         )
         results.append({
-            "question":  item["question"],
-            "answer":    result["answer"],
+            "question": item["question"],
+            "answer": result["answer"],
             **scores,
         })
     return results
