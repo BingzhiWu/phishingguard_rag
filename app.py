@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.database     import (init_db, save_query, save_evaluation,
                                get_recent_queries, get_latest_evaluation,
-                               get_kb_stats, get_alerts)
+                               get_kb_stats, get_query_by_id)
 from src.knowledge_base import build_knowledge_base
 from src.rag_pipeline   import run_pipeline
 from src.evaluator      import evaluate_response
@@ -103,13 +103,34 @@ section[data-testid="stSidebar"] {
   background:
     linear-gradient(180deg, rgba(11, 31, 53, 0.98), rgba(8, 23, 39, 0.98)) !important;
   border-right: 1px solid var(--line) !important;
-  min-width: 19rem !important;
-  max-width: 19rem !important;
+  min-width: 18rem !important;
+  max-width: 18rem !important;
 }
 section[data-testid="stSidebar"] > div {
-  padding-top: 0rem;
+  padding-top: 0 !important;
+}
+section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+  padding-top: 0.45rem !important;
+}
+section[data-testid="stSidebar"] [data-testid="stSidebarContent"] > div {
+  padding-top: 0 !important;
+}
+section[data-testid="stSidebar"] [data-testid="stSidebarContent"] .block-container {
+  padding-top: 0.35rem !important;
+}
+section[data-testid="stSidebar"] > div > div {
+  padding-top: 0.35rem !important;
 }
 section[data-testid="stSidebar"] * { color: #d9e7f6 !important; }
+section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] {
+  gap: 0.35rem !important;
+}
+section[data-testid="stSidebar"] div[data-testid="stElementContainer"] {
+  margin-bottom: 0.18rem !important;
+}
+section[data-testid="stSidebar"] .stMarkdown {
+  margin-bottom: 0 !important;
+}
 
 /* Nav radio */
 section[data-testid="stSidebar"] .stRadio input[type="radio"] {
@@ -145,16 +166,24 @@ section[data-testid="stSidebar"] .stRadio label:hover {
 section[data-testid="stSidebar"] .stButton > button {
   background: linear-gradient(180deg, rgba(17,40,67,0.98), rgba(11,31,53,0.98)) !important;
   border: 1px solid var(--line) !important;
-  border-radius: 16px !important;
+  border-radius: 13px !important;
   color: #d7e8f7 !important;
-  font-size: 0.95rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 560 !important;
   text-align: left !important;
   transition: all 0.18s ease !important;
   box-shadow: none !important;
-  min-height: 72px;
-  padding: 0.95rem 1rem !important;
+  min-height: 42px !important;
+  padding: 0.56rem 0.72rem !important;
   white-space: normal !important;
-  line-height: 1.45 !important;
+  line-height: 1.28 !important;
+}
+section[data-testid="stSidebar"] .stButton > button p,
+section[data-testid="stSidebar"] .stButton > button div[data-testid="stMarkdownContainer"] p {
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  margin: 0 !important;
 }
 section[data-testid="stSidebar"] .recent-query-action button {
   min-height: 44px !important;
@@ -239,173 +268,104 @@ section[data-testid="stSidebar"] .stButton > button:active {
   color: #ebfffd;
   border-color: rgba(47,208,195,0.28);
 }
-.sidebar-hero {
+.sidebar-brand {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 18px 18px 16px;
-  border-radius: 22px;
-  border: 1px solid rgba(120, 166, 209, 0.14);
-  background:
-    radial-gradient(circle at top left, rgba(47,208,195,0.10), transparent 34%),
-    linear-gradient(180deg, rgba(17,40,67,0.98), rgba(10,26,44,0.98));
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
-  margin-bottom: 14px;
-}
-.sidebar-hero-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-.sidebar-hero-badge {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 0.38rem 0.72rem;
-  border-radius: 999px;
-  background: rgba(47,208,195,0.10);
-  border: 1px solid rgba(47,208,195,0.22);
-  color: #eafffd;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  gap: 9px;
+  margin: 0 0 6px;
+  padding: 0 0.1rem 0.18rem;
 }
-.sidebar-hero-mark {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 16px;
+.sidebar-brand-mark {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.08rem;
   background: linear-gradient(180deg, rgba(47,208,195,0.18), rgba(47,143,255,0.10));
-  border: 1px solid rgba(47,208,195,0.26);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  border: 1px solid rgba(47,208,195,0.24);
 }
-.sidebar-hero-copy {
+.sidebar-brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 2px;
 }
-.sidebar-hero-eyebrow {
-  color: #8fb2cf;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.sidebar-brand-title {
+  color: #f5fbff;
+  font-size: 1.08rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+.sidebar-brand-subtitle {
+  color: #8aa3be;
+  font-size: 0.74rem;
+}
+.sidebar-section {
+  margin-top: 0.62rem;
+}
+.sidebar-new-chat-heading {
+  margin-top: 0.78rem;
+}
+.sidebar-new-chat-heading .sidebar-heading {
+  margin-bottom: 10px;
+}
+.sidebar-new-chat-gap {
+  height: 0.42rem;
+}
+.sidebar-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+  padding: 0 0.15rem;
+}
+.sidebar-heading-title {
+  color: #b9cce0;
+  font-size: 0.8rem;
+  font-weight: 780;
+  letter-spacing: 0.075em;
   text-transform: uppercase;
 }
-.sidebar-hero-title {
-  color: #f4f9ff;
-  font-size: 1.22rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+.sidebar-heading-meta {
+  color: #7894b0;
+  font-size: 0.7rem;
 }
-.sidebar-hero-title span {
-  color: var(--teal);
+.sidebar-divider {
+  height: 1px;
+  margin: 0.55rem 0 0.1rem;
+  background: linear-gradient(90deg, rgba(120,166,209,0.14), rgba(120,166,209,0));
 }
-.sidebar-hero-subtitle {
-  color: #a8bdd3;
-  font-size: 0.95rem;
-  line-height: 1.6;
+.sidebar-empty {
+  padding: 0.55rem 0.15rem 0.25rem;
+  color: #7d98b4;
+  font-size: 0.84rem;
+  line-height: 1.5;
 }
-.sidebar-hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.sidebar-hero-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  padding: 0.38rem 0.72rem;
-  border-radius: 999px;
-  border: 1px solid rgba(120,166,209,0.14);
-  background: rgba(255,255,255,0.03);
-  color: #cbdcf0;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-.sidebar-hero-chip.active {
-  background: rgba(47,208,195,0.12);
-  border-color: rgba(47,208,195,0.28);
-  color: #efffff;
-}
-.top-nav-shell {
-  position: sticky;
-  top: 0.75rem;
-  z-index: 30;
-  margin: 0 0 20px;
-  padding: 0.65rem;
-  border-radius: 24px;
-  border: 1px solid rgba(120, 166, 209, 0.16);
-  background:
-    linear-gradient(180deg, rgba(14, 35, 58, 0.96), rgba(8, 24, 41, 0.94)),
-    radial-gradient(circle at top left, rgba(47, 208, 195, 0.10), transparent 45%);
-  box-shadow: 0 20px 42px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(14px);
-}
-.top-nav-bar {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-.top-nav-link {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 64px;
-  padding: 0.95rem 1.1rem;
-  border-radius: 18px;
-  border: 1px solid rgba(120, 166, 209, 0.12);
-  background: linear-gradient(180deg, rgba(16, 39, 63, 0.92), rgba(10, 26, 44, 0.98));
+.sidebar-nav-button button {
+  min-height: 38px !important;
+  padding: 0.48rem 0.68rem !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,0.025) !important;
+  border: 1px solid rgba(120,166,209,0.10) !important;
+  box-shadow: none !important;
   color: #dcecff !important;
-  text-decoration: none !important;
-  font-size: 1rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  font-size: 0.72rem !important;
+  font-weight: 560 !important;
+  line-height: 1.22 !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
 }
-.top-nav-link:hover {
-  transform: translateY(-1px);
-  border-color: rgba(47,208,195,0.30);
-  background: linear-gradient(180deg, rgba(22, 52, 80, 0.96), rgba(12, 31, 50, 0.98));
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
-  color: #f6fbff !important;
-}
-.top-nav-link.active {
-  background:
-    linear-gradient(180deg, rgba(38, 111, 141, 0.98), rgba(20, 63, 93, 0.98)),
-    radial-gradient(circle at top left, rgba(47,208,195,0.18), transparent 55%);
-  border-color: rgba(47,208,195,0.55);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    inset 0 -4px 0 rgba(47,208,195,0.90),
-    0 16px 30px rgba(0, 0, 0, 0.24);
+.sidebar-nav-button button:hover {
+  background: rgba(255,255,255,0.055) !important;
+  border-color: rgba(47,208,195,0.18) !important;
   color: #ffffff !important;
+  transform: none !important;
 }
-.top-nav-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.08);
-  font-size: 1.05rem;
-  line-height: 1;
-}
-.top-nav-link.active .top-nav-icon {
-  background: rgba(255,255,255,0.16);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
-}
-.top-nav-label {
-  white-space: nowrap;
+.sidebar-nav-button.active button {
+  background: rgba(47,208,195,0.10) !important;
+  border-color: rgba(47,208,195,0.26) !important;
+  color: #efffff !important;
 }
 
 /* ── Chat area ───────────────────────────────────────────────── */
@@ -494,6 +454,9 @@ div[data-clearfix]::after { content: ""; display: table; clear: both; }
   border-left: 2px solid rgba(47,208,195,0.45);
   border-radius: 20px 20px 20px 8px;
 }
+.message-card.assistant.loading {
+  border-left-color: rgba(47,208,195,0.72);
+}
 .message-meta {
   display: flex;
   align-items: center;
@@ -520,6 +483,59 @@ div[data-clearfix]::after { content: ""; display: table; clear: both; }
   padding: 2px 6px;
   border-radius: 8px;
   border: 1px solid rgba(255,255,255,0.05);
+}
+.thinking-state {
+  display: grid;
+  gap: 12px;
+}
+.thinking-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e8fbff;
+  font-weight: 700;
+}
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 32px;
+}
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #6ff2e7;
+  opacity: 0.38;
+  animation: typingPulse 1.15s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.16s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.32s; }
+.thinking-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.thinking-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(120,166,209,0.14);
+  background: rgba(255,255,255,0.035);
+  color: #a8bdd3;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.thinking-step.active {
+  color: #9df1eb;
+  border-color: rgba(47,208,195,0.24);
+  background: rgba(47,208,195,0.08);
+}
+@keyframes typingPulse {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40% { transform: translateY(-4px); opacity: 1; }
 }
 
 /* AI bubble */
@@ -690,74 +706,90 @@ div[data-testid="stForm"] {
   margin-top: -6px;
   margin-bottom: 12px;
 }
-.recent-query-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.recent-query-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  font-size: 1rem;
-}
-.recent-query-time {
-  color: var(--muted);
-  font-size: 0.76rem;
-  white-space: nowrap;
-}
 .recent-query-title {
   color: #eef7ff;
   font-size: 0.92rem;
-  font-weight: 700;
-  line-height: 1.42;
-}
-.recent-query-sub {
-  color: var(--muted);
-  font-size: 0.76rem;
-  margin-top: 6px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .recent-query-card-shell {
-  padding: 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: linear-gradient(180deg, rgba(17,40,67,0.98), rgba(11,31,53,0.98));
+  display: block;
+  padding: 11px 12px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
   margin-bottom: 8px;
+  text-decoration: none !important;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  cursor: pointer;
 }
 .recent-query-card-shell.active {
-  background: linear-gradient(180deg, rgba(24,58,95,0.98), rgba(17,40,67,0.98));
-  border-color: rgba(47,208,195,0.22);
-  box-shadow: inset 0 0 0 1px rgba(47,208,195,0.08);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.06);
+}
+.recent-query-card-shell:hover {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.04);
+}
+.sidebar-text-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 0.12rem;
+}
+.sidebar-text-button button {
+  min-height: 32px !important;
+  padding: 0.36rem 0.56rem !important;
+  border-radius: 9px !important;
+  background: rgba(5, 17, 30, 0.58) !important;
+  border: 1px solid rgba(120,166,209,0.08) !important;
+  box-shadow: none !important;
+  color: #cfe0f2 !important;
+  font-size: 0.72rem !important;
+  font-weight: 400 !important;
+  line-height: 1.3 !important;
+  text-align: left !important;
+  justify-content: flex-start !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.sidebar-text-button button:hover {
+  background: rgba(8, 24, 41, 0.82) !important;
+  border-color: rgba(120,166,209,0.12) !important;
+  color: #ffffff !important;
+  transform: none !important;
+}
+.sidebar-text-button.active button {
+  background: rgba(7, 28, 43, 0.92) !important;
+  border-color: rgba(47,208,195,0.14) !important;
+  color: #efffff !important;
 }
 .panel-card {
   background: linear-gradient(180deg, rgba(13,34,57,0.96), rgba(10,26,44,0.98));
   border: 1px solid var(--line);
-  border-radius: 20px;
-  padding: 18px;
+  border-radius: 18px;
+  padding: 14px 16px;
   box-shadow: var(--shadow);
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 .panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .panel-title {
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: #eef8ff;
 }
 .panel-subtitle {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 .overall-score {
   display: flex;
@@ -766,60 +798,72 @@ div[data-testid="stForm"] {
   color: #f4fbff;
 }
 .overall-score strong {
-  font-size: 2rem;
+  font-size: 1.72rem;
   line-height: 1;
 }
 .overall-score span {
-  font-size: 0.95rem;
+  font-size: 0.84rem;
   color: var(--muted);
 }
 .metric-card {
   display: grid;
-  grid-template-columns: 84px 1fr;
-  gap: 14px;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
   align-items: center;
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 18px;
-  padding: 14px;
-  margin-top: 12px;
+  border-radius: 16px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  min-height: 92px;
 }
 .metric-ring {
-  --angle: 0deg;
-  --ring-color: var(--teal);
-  width: 72px;
-  height: 72px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
-  background:
-    radial-gradient(closest-side, #0c1f34 70%, transparent 71% 100%),
-    conic-gradient(var(--ring-color) var(--angle), rgba(255,255,255,0.08) 0deg);
+  background: conic-gradient(#18d59c 0%, rgba(255,255,255,0.08) 0%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  box-shadow:
+    0 0 0 8px rgba(255,255,255,0.025),
+    inset 0 0 0 1px rgba(255,255,255,0.04);
+  flex: 0 0 auto;
+  position: relative;
+}
+.metric-ring::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: inherit;
+  background: #0c1f34;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
 }
 .metric-ring span {
   color: #f4fbff;
-  font-size: 1.45rem;
+  font-size: 0.98rem;
   font-weight: 800;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
 }
 .metric-copy h4 {
-  margin: 0 0 6px 0;
-  font-size: 1rem;
+  margin: 0 0 4px 0;
+  font-size: 0.86rem;
   color: #f2f8ff;
 }
 .metric-copy p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 .metric-pill {
-  margin-top: 10px;
+  margin-top: 7px;
   display: inline-flex;
-  padding: 5px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 700;
   border: 1px solid rgba(255,255,255,0.08);
 }
@@ -843,58 +887,6 @@ div[data-testid="stForm"] {
   color: #f5fbff;
   font-size: 1.3rem;
   font-weight: 800;
-}
-.alert-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 12px 0;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-.alert-card:first-of-type {
-  border-top: none;
-  padding-top: 4px;
-}
-.alert-main {
-  display: flex;
-  gap: 10px;
-}
-.alert-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex: 0 0 auto;
-}
-.alert-icon.high {
-  background: rgba(255,123,114,0.10);
-  color: #ff958b;
-}
-.alert-icon.medium {
-  background: rgba(255,173,66,0.10);
-  color: #ffbe68;
-}
-.alert-icon.low {
-  background: rgba(83,209,125,0.10);
-  color: #8be6a8;
-}
-.alert-copy strong {
-  display: block;
-  color: #eef8ff;
-  margin-bottom: 4px;
-}
-.alert-copy span {
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.5;
-}
-.alert-time {
-  color: var(--muted);
-  font-size: 0.78rem;
-  white-space: nowrap;
 }
 .prompt-row {
   display: flex;
@@ -920,6 +912,37 @@ div[data-testid="stForm"] {
   border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow);
+}
+.report-score-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 14px 0 18px;
+}
+.report-score-card {
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(120,166,209,0.14);
+  background: linear-gradient(180deg, rgba(16,39,63,0.88), rgba(10,26,44,0.96));
+}
+.report-score-label {
+  color: #b8cbe0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.report-score-value {
+  color: #f5fbff;
+  font-size: 1.65rem;
+  font-weight: 850;
+}
+.report-chart-title {
+  color: #f1f8ff;
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 14px 0 8px;
 }
 
 /* ── Misc ────────────────────────────────────────────────────── */
@@ -982,6 +1005,14 @@ if "last_eval" not in st.session_state:
     st.session_state.last_eval = get_latest_evaluation()
 if "active_query" not in st.session_state:
     st.session_state.active_query = ""
+if "loaded_query_id" not in st.session_state:
+    st.session_state.loaded_query_id = None
+if "pending_query" not in st.session_state:
+    st.session_state.pending_query = None
+if "pending_visible" not in st.session_state:
+    st.session_state.pending_visible = False
+if "chat_input" not in st.session_state:
+    st.session_state.chat_input = ""
 
 
 # ── Helper: gauge chart ───────────────────────────────────────────────────────
@@ -1056,18 +1087,82 @@ def query_icon(query: str) -> str:
     return "✉️"
 
 
+def restore_query(query_id: int) -> bool:
+    loaded = get_query_by_id(query_id)
+    if not loaded:
+        return False
+    st.session_state.messages = [
+        {
+            "role": "user",
+            "content": loaded["question"],
+        },
+        {
+            "role": "assistant",
+            "content": loaded["answer"],
+            "intent": loaded["intent"],
+            "contexts": loaded["contexts"],
+            "verified": loaded["ontology_verified"],
+            "confidence": loaded["confidence_score"],
+        },
+    ]
+    st.session_state.active_query = loaded["question"]
+    st.session_state.active_page = "Chat"
+    st.session_state.last_eval = loaded["evaluation"]
+    st.session_state.loaded_query_id = query_id
+    st.session_state.pending_query = None
+    st.session_state.pending_visible = False
+    st.query_params["page"] = "Chat"
+    return True
+
+
+def queue_chat_query() -> None:
+    query = st.session_state.get("chat_input", "").strip()
+    if not query or st.session_state.get("pending_query"):
+        return
+    st.session_state.active_query = query
+    st.session_state.messages.append({
+        "role": "user",
+        "content": query,
+    })
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": "Analysing your question",
+        "loading": True,
+    })
+    st.session_state.pending_query = query
+    st.session_state.pending_visible = False
+    st.session_state.loaded_query_id = None
+    st.session_state.chat_input = ""
+
+
+requested_loaded_query = st.query_params.get("load_query")
+if isinstance(requested_loaded_query, list):
+    requested_loaded_query = requested_loaded_query[0]
+if requested_loaded_query:
+    try:
+        requested_loaded_query_id = int(requested_loaded_query)
+    except ValueError:
+        requested_loaded_query_id = None
+    if (
+        requested_loaded_query_id
+        and st.session_state.loaded_query_id != requested_loaded_query_id
+    ):
+        restore_query(requested_loaded_query_id)
+
+
 def metric_card(value: int, label: str, desc: str) -> str:
-    color = score_color(value)
     status = score_label(value)
-    angle = max(0, min(100, value)) * 3.6
+    pct = max(0, min(100, int(value)))
+    ring_color = score_color(pct)
+    track_color = "rgba(255,255,255,0.08)"
     pill_bg = "rgba(83,209,125,0.10)" if value >= 80 else (
         "rgba(255,173,66,0.10)" if value >= 60 else "rgba(255,123,114,0.10)"
     )
     pill_fg = "#8be6a8" if value >= 80 else ("#ffbe68" if value >= 60 else "#ffaaa3")
     return f"""
     <div class="metric-card">
-      <div class="metric-ring" style="--angle:{angle}deg; --ring-color:{color};">
-        <span>{value}</span>
+      <div class="metric-ring" style="background: conic-gradient({ring_color} 0 {pct}%, {track_color} {pct}% 100%);">
+        <span>{pct}%</span>
       </div>
       <div class="metric-copy">
         <h4>{label}</h4>
@@ -1087,115 +1182,9 @@ def stat_card(label: str, value) -> str:
     """
 
 
-def alert_card(title: str, desc: str, sev: str, ts) -> str:
-    sev = (sev or "low").lower()
-    icon = {"high": "⚠️", "medium": "🛡️", "low": "✓"}.get(sev, "•")
-    return f"""
-    <div class="alert-card">
-      <div class="alert-main">
-        <div class="alert-icon {sev}">{icon}</div>
-        <div class="alert-copy">
-          <strong>{title}</strong>
-          <span>{desc}</span>
-        </div>
-      </div>
-      <div class="alert-time">{str(ts)}</div>
-    </div>
-    """
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR
+# ROUTING
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.sidebar:
-    # Logo + title
-    st.markdown("""
-    <div class="sidebar-hero">
-      <div class="sidebar-hero-top">
-        <span class="sidebar-hero-mark">🛡️</span>
-        <span class="sidebar-hero-badge">Secure Workspace</span>
-      </div>
-      <div class="sidebar-hero-copy">
-        <span class="sidebar-hero-eyebrow">Phishing Analysis</span>
-        <span class="sidebar-hero-title">PhishingGuard<span>-RAG</span> Assistant</span>
-        <span class="sidebar-hero-subtitle">Investigate suspicious messages, URLs, and phishing indicators in one focused workspace.</span>
-      </div>
-      <div class="sidebar-hero-actions">
-        <span class="sidebar-hero-chip active">Live Chat</span>
-        <span class="sidebar-hero-chip">Knowledge Base</span>
-        <span class="sidebar-hero-chip">RAGAS</span>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.divider()
-
-    # Recent queries
-    st.markdown('<div class="side-section-title">🕒 Recent Queries</div>', unsafe_allow_html=True)
-    st.markdown('<div class="side-note">Resume recent investigations or load demo prompts.</div>', unsafe_allow_html=True)
-    recent = get_recent_queries(8)
-    example_qs = [
-        "How to identify phishing links in emails?",
-        "What are common phishing techniques?",
-        "How to detect spear-phishing?",
-        "Explain BEC attack and prevention.",
-        "What indicators suggest a phishing page?",
-        "Best practices for phishing awareness?",
-        "How does URL obfuscation work?",
-        "How to report phishing emails?",
-    ]
-    all_items = (
-        [(r[0], r[1], str(r[2])[:10]) for r in recent]
-        + [(None, q, "Demo") for q in example_qs]
-    )[:8]
-
-    for _, q, ts in all_items:
-        short = (q[:48] + "…") if len(q) > 48 else q
-        icon = query_icon(q)
-        stamp = format_query_time(ts)
-        sub = "Recent investigation" if ts != "Demo" else "Try this example"
-        is_active_query = st.session_state.get("active_query") == q
-        card_html = f"""
-        <div class="recent-query-card-shell{" active" if is_active_query else ""}">
-        <div class="recent-query-meta">
-          <span class="recent-query-badge">{icon}</span>
-          <span class="recent-query-time">{stamp}</span>
-        </div>
-        <div class="recent-query-title">{short}</div>
-        <div class="recent-query-sub">{sub}</div>
-        </div>
-        """
-        st.markdown(card_html, unsafe_allow_html=True)
-        st.markdown('<div class="recent-query-action">', unsafe_allow_html=True)
-        if st.button(f"{icon}  Load query", key=f"hist_{q[:20]}", use_container_width=True):
-            st.session_state.prefill = q
-            st.session_state.active_query = q
-            st.session_state.active_page = "Chat"
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    st.divider()
-    if st.button("🗑️  Clear History", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.active_query = ""
-        st.rerun()
-
-    # Example prompts
-    st.markdown('<div class="side-section-title">💡 Example Prompts</div>', unsafe_allow_html=True)
-    ex_prompts = [
-        "How to detect spear-phishing?",
-        "What are phishing URL red flags?",
-        "How to prevent BEC attacks?",
-    ]
-    for ep in ex_prompts:
-        if st.button(f"↗  {ep}", key=f"ex_{ep[:15]}", use_container_width=True):
-            st.session_state.prefill = ep
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN AREA
-# ═══════════════════════════════════════════════════════════════════════════════
-active = st.session_state.active_page
 page_items = [
     ("Chat", "💬"),
     ("Knowledge Base", "📚"),
@@ -1207,24 +1196,124 @@ if isinstance(requested_page, list):
 if requested_page in {name for name, _ in page_items}:
     st.session_state.active_page = requested_page
 active = st.session_state.active_page
-nav_html = '<div class="top-nav-shell"><div class="top-nav-bar">'
-for name, icon in page_items:
-    active_class = " active" if active == name else ""
-    href = f"?page={name.replace(' ', '%20')}"
-    nav_html += (
-        f'<a class="top-nav-link{active_class}" href="{href}" target="_self">'
-        f'<span class="top-nav-icon">{icon}</span>'
-        f'<span class="top-nav-label">{name}</span>'
-        '</a>'
-    )
-nav_html += '</div></div>'
-st.markdown(nav_html, unsafe_allow_html=True)
-st.query_params["page"] = active
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SIDEBAR
+# ═══════════════════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-brand">
+      <span class="sidebar-brand-mark">🛡️</span>
+      <div class="sidebar-brand-copy">
+        <span class="sidebar-brand-title">PhishingGuard-RAG</span>
+        <span class="sidebar-brand-subtitle">Threat analysis workspace</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="sidebar-section sidebar-new-chat-heading">
+      <div class="sidebar-heading">
+        <span class="sidebar-heading-title">New Chat</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("✚  Start a new conversation", key="sidebar_new_chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.active_query = ""
+        st.session_state.prefill = ""
+        st.session_state.chat_input = ""
+        st.session_state.pending_query = None
+        st.session_state.pending_visible = False
+        st.session_state.active_page = "Chat"
+        st.query_params["page"] = "Chat"
+        st.rerun()
+
+    st.markdown('<div class="sidebar-new-chat-gap"></div>', unsafe_allow_html=True)
+
+    for nav_name, nav_icon in page_items[1:]:
+        active_class = " active" if active == nav_name else ""
+        st.markdown(
+            f'<div class="sidebar-nav-button{active_class}">',
+            unsafe_allow_html=True,
+        )
+        if st.button(
+            f"{nav_icon}  {nav_name}",
+            key=f"sidebar_nav_{nav_name}",
+            use_container_width=True,
+        ):
+            st.session_state.active_page = nav_name
+            st.query_params["page"] = nav_name
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="sidebar-section">
+      <div class="sidebar-heading">
+        <span class="sidebar-heading-title">Recent Chats</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    recent = get_recent_queries(8)
+    recent_items = [(r[0], r[1], str(r[2])[:10]) for r in recent][:8]
+
+    if not recent_items:
+        st.markdown('<div class="sidebar-empty">No recent chats yet. Start a conversation and it will show up here.</div>', unsafe_allow_html=True)
+
+    if recent_items:
+        st.markdown('<div class="sidebar-text-list">', unsafe_allow_html=True)
+        for query_id, q, ts in recent_items:
+            short = (q[:42] + "…") if len(q) > 42 else q
+            is_active_query = st.session_state.get("active_query") == q
+            active_class = " active" if is_active_query else ""
+            st.markdown(
+                f'<div class="sidebar-text-button{active_class}">',
+                unsafe_allow_html=True,
+            )
+            if st.button(short, key=f"recent_chat_{query_id}", use_container_width=True):
+                restore_query(query_id)
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="sidebar-section">
+      <div class="sidebar-heading">
+        <span class="sidebar-heading-title">Example Prompts</span>
+        <span class="sidebar-heading-meta">Try one</span>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+    ex_prompts = [
+        "How to detect spear-phishing?",
+        "What are phishing URL red flags?",
+        "How to prevent BEC attacks?",
+    ]
+    st.markdown('<div class="sidebar-text-list">', unsafe_allow_html=True)
+    for i, ep in enumerate(ex_prompts):
+        st.markdown(
+            '<div class="sidebar-text-button">',
+            unsafe_allow_html=True,
+        )
+        if st.button(ep, key=f"ex_prompt_{i}", use_container_width=True):
+            st.session_state.chat_input = ep
+            st.session_state.active_page = "Chat"
+            st.query_params["page"] = "Chat"
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN AREA
+# ═══════════════════════════════════════════════════════════════════════════════
 active = st.session_state.active_page
+st.query_params["page"] = active
 
 # ── CHAT PAGE ─────────────────────────────────────────────────────────────────
 if active == "Chat":
-    col_chat, col_right = st.columns([3, 1.5])
+    col_chat, col_right = st.columns([4, 1.2])
 
     # ── Chat column ──────────────────────────────────────────────────────────
     with col_chat:
@@ -1255,6 +1344,32 @@ if active == "Chat":
                         f'<div class="avatar user">👤</div>'
                         f'</div>'
                     )
+                elif msg.get("loading"):
+                    chat_html += (
+                        f'<div class="chat-row assistant">'
+                        f'<div class="avatar assistant">🛡️</div>'
+                        f'<div class="message-card assistant loading">'
+                        f'<div class="message-meta">'
+                        f'<span class="message-author">PhishingGuard-RAG AI</span>'
+                        f'<span class="message-time">{msg_time}</span>'
+                        f'</div>'
+                        f'<div class="message-body">'
+                        f'<div class="thinking-state">'
+                        f'<div class="thinking-line">'
+                        f'<span>{msg.get("content", "Analysing your question")}</span>'
+                        f'<span class="typing-dots"><span></span><span></span><span></span></span>'
+                        f'</div>'
+                        f'<div class="thinking-steps">'
+                        f'<span class="thinking-step active">Intent</span>'
+                        f'<span class="thinking-step">Retrieval</span>'
+                        f'<span class="thinking-step">Answer</span>'
+                        f'<span class="thinking-step">Evaluation</span>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>'
+                        f'</div>'
+                    )
                 else:
                     badge = (
                         '<span class="verified-badge">✅ Ontology Verified</span>'
@@ -1268,7 +1383,7 @@ if active == "Chat":
                             f'<div class="intent-tag">🎯 <b>Intent</b> {msg["intent"][:120]}</div>'
                         )
                     ctx_html = ""
-                    for i, c in enumerate(msg.get("contexts", [])[:2]):
+                    for i, c in enumerate(msg.get("contexts", [])[:3]):
                         ctx_html += (
                             f'<div class="context-card">'
                             f'[{i+1}] {c[:200]}…</div>'
@@ -1295,6 +1410,8 @@ if active == "Chat":
 
         # Input
         prefill = st.session_state.pop("prefill", "")
+        if prefill and not st.session_state.pending_query:
+            st.session_state.chat_input = prefill
         st.markdown("""
         <div class="prompt-row">
           <span class="prompt-chip">How to detect spear-phishing?</span>
@@ -1305,57 +1422,86 @@ if active == "Chat":
         with st.form("chat_form", clear_on_submit=True):
             col_inp, col_btn = st.columns([5, 1])
             with col_inp:
-                user_input = st.text_input(
+                st.text_input(
                     "query",
-                    value=prefill,
+                    key="chat_input",
                     placeholder="Ask a question about phishing threats…",
                     label_visibility="collapsed",
+                    disabled=bool(st.session_state.pending_query),
                 )
             with col_btn:
-                submitted = st.form_submit_button("Send ✈️",
-                                                  use_container_width=True)
+                st.form_submit_button(
+                    "Send ✈️",
+                    use_container_width=True,
+                    disabled=bool(st.session_state.pending_query),
+                    on_click=queue_chat_query,
+                )
         st.markdown('<div class="chat-bottom-spacer"></div>', unsafe_allow_html=True)
 
-        if submitted and user_input.strip():
-            query = user_input.strip()
-            st.session_state.active_query = query
-            st.session_state.messages.append({"role": "user",
-                                               "content": query})
+        if st.session_state.pending_query:
+            if not st.session_state.pending_visible:
+                st.session_state.pending_visible = True
+                st.rerun()
 
-            with st.spinner("🔍 Analysing query…"):
-                result = run_pipeline(query)
+            query = st.session_state.pending_query
 
-            with st.spinner("📊 Evaluating with RAGAS…"):
-                scores = evaluate_response(
-                    query, result["answer"], result["contexts"]
+            try:
+                with st.spinner("🔍 Analysing query…"):
+                    result = run_pipeline(query)
+
+                with st.spinner("📊 Evaluating with RAGAS…"):
+                    scores = evaluate_response(
+                        query, result["answer"], result["contexts"]
+                    )
+
+                # Persist to DB
+                qid = save_query(
+                    query, result["intent"], result["answer"],
+                    result["contexts"], result["ontology_verified"],
+                    result["confidence_score"], result["ontology_reasoning"],
                 )
+                save_evaluation(qid, **scores)
 
-            # Persist to DB
-            qid = save_query(
-                query, result["intent"], result["answer"],
-                result["contexts"], result["ontology_verified"],
-                result["confidence_score"], result["ontology_reasoning"],
-            )
-            save_evaluation(qid, **scores)
+                # Update eval panel
+                st.session_state.last_eval = {
+                    "faithfulness":      round(scores["faithfulness"] * 100),
+                    "answer_relevance":  round(scores["answer_relevance"] * 100),
+                    "context_relevance": round(scores["context_relevance"] * 100),
+                    "context_recall":    round(scores["context_recall"] * 100),
+                    "overall_score":     round(
+                        sum(scores.values()) / 4 * 100, 1),
+                }
 
-            # Update eval panel
-            st.session_state.last_eval = {
-                "faithfulness":      round(scores["faithfulness"] * 100),
-                "answer_relevance":  round(scores["answer_relevance"] * 100),
-                "context_relevance": round(scores["context_relevance"] * 100),
-                "context_recall":    round(scores["context_recall"] * 100),
-                "overall_score":     round(
-                    sum(scores.values()) / 4 * 100, 1),
-            }
+                assistant_msg = {
+                    "role":      "assistant",
+                    "content":   result["answer"],
+                    "intent":    result["intent"],
+                    "contexts":  result["contexts"],
+                    "verified":  result["ontology_verified"],
+                    "confidence": result["confidence_score"],
+                }
+            except Exception as exc:
+                assistant_msg = {
+                    "role": "assistant",
+                    "content": (
+                        "Sorry, the request failed while processing. "
+                        f"Please try again. Error: {exc}"
+                    ),
+                    "intent": "",
+                    "contexts": [],
+                    "verified": False,
+                    "confidence": 0,
+                }
 
-            st.session_state.messages.append({
-                "role":      "assistant",
-                "content":   result["answer"],
-                "intent":    result["intent"],
-                "contexts":  result["contexts"],
-                "verified":  result["ontology_verified"],
-                "confidence": result["confidence_score"],
-            })
+            if (
+                st.session_state.messages
+                and st.session_state.messages[-1].get("loading")
+            ):
+                st.session_state.messages[-1] = assistant_msg
+            else:
+                st.session_state.messages.append(assistant_msg)
+            st.session_state.pending_query = None
+            st.session_state.pending_visible = False
             st.rerun()
 
     # ── Right panel ───────────────────────────────────────────────────────────
@@ -1390,50 +1536,28 @@ if active == "Chat":
             val = ev.get(key, 0)
             st.markdown(metric_card(val, label, desc), unsafe_allow_html=True)
 
-        # KB Stats
-        kb = get_kb_stats()
-        st.markdown(f"""
-        <div class="panel-card">
-          <div class="panel-heading">
-            <div>
-              <div class="panel-title">📚 Knowledge Base Stats</div>
-              <div class="panel-subtitle">Current indexed corpus snapshot</div>
-            </div>
-          </div>
-          <div class="stat-grid">
-            {stat_card("Documents", kb["documents"])}
-            {stat_card("Chunks", kb["chunks"])}
-            {stat_card("Embeddings", kb["embeddings"])}
-            {stat_card("Queries", kb["total_queries"])}
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # Alerts
-        st.markdown("""
-        <div class="panel-card">
-          <div class="panel-heading">
-            <div>
-              <div class="panel-title">🚨 Security Alerts</div>
-              <div class="panel-subtitle">Recent high-signal activity</div>
-            </div>
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
-        alerts = get_alerts(4)
-        for title, desc, sev, ts in alerts:
-            st.markdown(alert_card(title, desc, sev, ts), unsafe_allow_html=True)
-
-
 # ── KNOWLEDGE BASE PAGE ───────────────────────────────────────────────────────
 elif active == "Knowledge Base":
-    st.markdown("""
-    <div class="kb-shell">
-      <div class="panel-title">📚 Knowledge Base</div>
-      <div class="panel-subtitle">Indexed phishing reference material and source documents.</div>
+    kb = get_kb_stats()
+    kb_stats_html = "".join([
+        stat_card("Documents", kb["documents"]),
+        stat_card("Chunks", kb["chunks"]),
+        stat_card("Embeddings", kb["embeddings"]),
+        stat_card("Queries", kb["total_queries"]),
+    ])
+    st.markdown(f"""
+    <div class="panel-card">
+      <div class="panel-heading">
+        <div>
+          <div class="panel-title">📚 Knowledge Base Stats</div>
+          <div class="panel-subtitle">Current indexed corpus snapshot</div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        {kb_stats_html}
+      </div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("## 📚 Knowledge Base")
     st.markdown(
         "Documents are crawled from NIST and APWG, chunked into 512-token "
         "segments with 64-token overlap, and indexed in FAISS using "
@@ -1461,7 +1585,6 @@ elif active == "Reports":
       <div class="panel-subtitle">Recent RAGAS performance trends and exportable query history.</div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("## 📊 Evaluation Reports")
 
     import sqlite3, pandas as pd
     from src.database import DB_PATH
@@ -1490,30 +1613,61 @@ elif active == "Reports":
         avg = df_eval[["faithfulness", "answer_relevance",
                         "context_relevance", "context_recall"]].mean()
 
-        cols = st.columns(4)
         labels = ["Faithfulness", "Ans. Relevance",
                   "Ctx. Relevance", "Ctx. Recall"]
         keys   = ["faithfulness", "answer_relevance",
                   "context_relevance", "context_recall"]
-        for col, lbl, key in zip(cols, labels, keys):
+        score_cards = ['<div class="report-score-grid">']
+        for lbl, key in zip(labels, keys):
             val = round(avg[key] * 100, 1)
-            col.metric(lbl, f"{val}%")
+            score_cards.append(
+                f'<div class="report-score-card">'
+                f'<div class="report-score-label">{lbl}</div>'
+                f'<div class="report-score-value">{val}%</div>'
+                f'</div>'
+            )
+        score_cards.append('</div>')
+        st.markdown("".join(score_cards), unsafe_allow_html=True)
 
         # Trend chart
         import plotly.express as px
         df_plot = df_eval.copy()
         df_plot["timestamp"] = pd.to_datetime(df_plot["timestamp"])
+        st.markdown('<div class="report-chart-title">RAGAS Score Trends</div>', unsafe_allow_html=True)
         fig = px.line(
             df_plot, x="timestamp",
             y=["faithfulness", "answer_relevance",
                "context_relevance", "context_recall"],
-            title="RAGAS Score Trends",
             color_discrete_sequence=["#1e90ff", "#2ecc71",
                                       "#f39c12", "#e74c3c"],
             template="plotly_dark",
         )
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",
-                          plot_bgcolor="#112240")
+        fig.update_layout(
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="#10233b",
+            font=dict(color="#d9e7f6", size=13),
+            legend=dict(
+                title=dict(text="Metric", font=dict(color="#f1f8ff")),
+                font=dict(color="#d9e7f6"),
+                bgcolor="rgba(8,23,39,0.72)",
+                bordercolor="rgba(120,166,209,0.18)",
+                borderwidth=1,
+            ),
+            xaxis=dict(
+                title=dict(font=dict(color="#d9e7f6")),
+                tickfont=dict(color="#b8cbe0"),
+                gridcolor="rgba(255,255,255,0.14)",
+                zerolinecolor="rgba(255,255,255,0.18)",
+            ),
+            yaxis=dict(
+                title=dict(font=dict(color="#d9e7f6")),
+                tickfont=dict(color="#b8cbe0"),
+                gridcolor="rgba(255,255,255,0.18)",
+                zerolinecolor="rgba(255,255,255,0.18)",
+            ),
+            margin=dict(l=48, r=28, t=12, b=48),
+        )
+        fig.update_traces(line=dict(width=3))
         st.plotly_chart(fig, use_container_width=True)
 
         st.markdown("### Query History")

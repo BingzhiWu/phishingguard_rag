@@ -124,6 +124,50 @@ def get_recent_queries(limit: int = 10) -> list:
     return rows
 
 
+def get_query_by_id(query_id: int) -> dict | None:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT q.id, q.question, q.intent, q.answer, q.contexts,
+               q.ontology_verified, q.confidence_score, q.ontology_reasoning,
+               q.timestamp, e.faithfulness, e.answer_relevance,
+               e.context_relevance, e.context_recall, e.overall_score
+        FROM queries q
+        LEFT JOIN evaluations e ON e.query_id = q.id
+        WHERE q.id = ?
+        ORDER BY e.timestamp DESC
+        LIMIT 1
+    """, (query_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    contexts = []
+    if row[4]:
+        try:
+            contexts = json.loads(row[4])
+        except json.JSONDecodeError:
+            contexts = []
+    return {
+        "id": row[0],
+        "question": row[1],
+        "intent": row[2],
+        "answer": row[3],
+        "contexts": contexts,
+        "ontology_verified": bool(row[5]),
+        "confidence_score": row[6] or 0.0,
+        "ontology_reasoning": row[7],
+        "timestamp": row[8],
+        "evaluation": {
+            "faithfulness": round((row[9] or 0) * 100),
+            "answer_relevance": round((row[10] or 0) * 100),
+            "context_relevance": round((row[11] or 0) * 100),
+            "context_recall": round((row[12] or 0) * 100),
+            "overall_score": row[13] or 0,
+        },
+    }
+
+
 def get_latest_evaluation() -> dict:
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
